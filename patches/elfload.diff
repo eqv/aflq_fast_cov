@@ -1,6 +1,7 @@
---- qemu-2.10.0-rc3-clean/linux-user/elfload.c	2017-08-15 11:39:41.000000000 -0700
-+++ qemu-2.10.0-rc3/linux-user/elfload.c	2017-08-22 14:33:57.397127516 -0700
-@@ -20,6 +20,8 @@
+diff -Naur qemu-5.2.0/linux-user/elfload.c qemu-5.2.0-patched/linux-user/elfload.c
+--- qemu-5.2.0/linux-user/elfload.c	2020-12-08 09:59:44.000000000 -0700
++++ qemu-5.2.0-patched/linux-user/elfload.c	2021-03-24 16:46:21.889123559 -0600
+@@ -26,6 +26,8 @@
  
  #define ELF_OSABI   ELFOSABI_SYSV
  
@@ -9,16 +10,16 @@
  /* from personality.h */
  
  /*
-@@ -2085,6 +2087,8 @@
-     info->brk = 0;
-     info->elf_flags = ehdr->e_flags;
+@@ -2757,6 +2759,8 @@
+     }
+ #endif
  
 +    if (!afl_entry_point) afl_entry_point = info->entry;
 +
      for (i = 0; i < ehdr->e_phnum; i++) {
          struct elf_phdr *eppnt = phdr + i;
          if (eppnt->p_type == PT_LOAD) {
-@@ -2118,9 +2122,11 @@
+@@ -2805,9 +2809,11 @@
              if (elf_prot & PROT_EXEC) {
                  if (vaddr < info->start_code) {
                      info->start_code = vaddr;

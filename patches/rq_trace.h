@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define gettid() syscall(SYS_gettid)
 
@@ -12,8 +13,7 @@ typedef uint128_t khint128_t;
 #define INIT_NUM_OF_STORED_TRANSITIONS 0xfffff
 
 /*! @function
-  @abstract     64-bit integer hash function
-  @param  key   The integer [khint64_t]
+  @abstract     64-bit integer hash function @param  key   The integer [khint64_t]
   @return       The hash value [khint_t]
  */
 #define kh_int128_hash_func(key) (khint32_t)((key)>>33^(key)^(key)<<11) ^ (((key>>64))>>33^((key>>64))^((key>>64))<<11)
@@ -79,7 +79,7 @@ static inline void redqueen_trace_register_transition(redqueen_trace_t* self, ui
 }
 
 
-static inline void trace_bb(abi_ulong cur_loc, uint16_t size){
+static inline void trace_bb(uint64_t cur_loc, uint16_t size){
   static __thread redqueen_trace_t *trace_info;
     if(!trace_info){trace_info = redqueen_trace_new();}
 
