@@ -23,9 +23,9 @@
 #
 
 
-VERSION="2.10.0"
+VERSION="5.2.0"
 QEMU_URL="http://download.qemu-project.org/qemu-${VERSION}.tar.xz"
-QEMU_SHA384="68216c935487bc8c0596ac309e1e3ee75c2c4ce898aab796faa321db5740609ced365fedda025678d072d09ac8928105"
+QEMU_SHA384="4d99220e1eaf34218ed577cc932af1219e45e5363275cfe0b010a5eb536ea87919910eadbce50d91362c332eb9b22628"
 
 echo "================================================="
 echo "AFL binary-only instrumentation QEMU build script"
@@ -63,8 +63,7 @@ done
 
 if [ ! -d "/usr/include/glib-2.0/" -a ! -d "/usr/local/include/glib-2.0/" ]; then
 
-  echo "[-] Error: devel version of 'glib2' not found, please install first."
-  exit 1
+  echo "[-] Warning: devel version of 'glib2' not found, please install first."
 
 fi
 
@@ -123,8 +122,6 @@ echo "[*] Applying patches..."
 
 patch -p1 <../patches/elfload.diff || exit 1
 patch -p1 <../patches/cpu-exec.diff || exit 1
-patch -p1 <../patches/syscall.diff || exit 1
-patch -p1 <../patches/memfd.diff || exit 1
 
 echo "[+] Patching done."
 
@@ -139,15 +136,15 @@ echo "[+] Configuration complete."
 
 echo "[*] Attempting to build QEMU (fingers crossed!)..."
 
-make || exit 1
+cd build; make -j4 || exit 1
 
 echo "[+] Build process successful!"
 
 echo "[*] Copying binary..."
 
-cp -f "${CPU_TARGET}-linux-user/qemu-${CPU_TARGET}" "../afl-qemu-trace" || exit 1
+cp -f "${CPU_TARGET}-linux-user/qemu-${CPU_TARGET}" "../../afl-qemu-trace" || exit 1
 
-cd ..
+cd ../..
 ls -l afl-qemu-trace || exit 1
 
 echo "[+] Successfully created 'afl-qemu-trace'."

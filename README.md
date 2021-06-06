@@ -40,6 +40,7 @@ optional arguments:
 
 ```
 ```bash
+$ cd workdir; bash make.sh; cd ..
 $ python cov.py -i workdir/in -o workdir/out -m64 workdir/test
 ```
 ```

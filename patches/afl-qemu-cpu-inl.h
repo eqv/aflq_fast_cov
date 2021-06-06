@@ -40,7 +40,7 @@
    overhead in the next forked-off copy). */
 
 #define AFL_QEMU_CPU_SNIPPET1 do { \
-    afl_request_tsl(pc, cs_base, flags); \
+    afl_request_tsl(pc, cs_base, flags, cf_mask); \
   } while (0)
 
 /* This snippet kicks in when the instruction pointer is positioned at
@@ -66,7 +66,7 @@ static unsigned char *afl_area_ptr;
 
 /* Exported variables populated by the code patched into elfload.c: */
 
-abi_ulong afl_entry_point, /* ELF entry point (_start) */
+uint64_t afl_entry_point, /* ELF entry point (_start) */
           afl_start_code,  /* .text start pointer      */
           afl_end_code;    /* .text end pointer        */
 
@@ -83,10 +83,10 @@ static unsigned int afl_inst_rms = MAP_SIZE;
 
 static void afl_setup(void);
 static void afl_forkserver(CPUState*);
-static inline void afl_maybe_log(abi_ulong, uint16_t);
+static inline void afl_maybe_log(uint64_t, uint16_t);
 
 static void afl_wait_tsl(CPUState*, int);
-static void afl_request_tsl(target_ulong, target_ulong, uint64_t);
+static void afl_request_tsl(target_ulong, target_ulong, uint64_t, uint32_t);
 
 /* Data structure passed around by the translate handlers: */
 
@@ -94,12 +94,13 @@ struct afl_tsl {
   target_ulong pc;
   target_ulong cs_base;
   uint64_t flags;
+  uint32_t mask;
 };
 
 /* Some forward decls: */
 
-TranslationBlock *tb_htable_lookup(CPUState*, target_ulong, target_ulong, uint32_t);
-static inline TranslationBlock *tb_find(CPUState*, TranslationBlock*, int);
+// TranslationBlock *tb_htable_lookup(CPUState *cpu, target_ulong pc, target_ulong cs_base, uint32_t flags, uint32_t cf_mask);
+// static inline TranslationBlock *tb_find(CPUState*, TranslationBlock*, int);
 
 /*************************
  * ACTUAL IMPLEMENTATION *
@@ -145,7 +146,7 @@ static void afl_setup(void) {
   if (getenv("AFL_INST_LIBS")) {
 
     afl_start_code = 0;
-    afl_end_code   = (abi_ulong)-1;
+    afl_end_code   = (uint64_t)-1;
 
   }
 
@@ -236,16 +237,16 @@ static void afl_forkserver(CPUState *cpu) {
 
 /* The equivalent of the tuple logging routine from afl-as.h. */
 
-static inline void afl_maybe_log(abi_ulong cur_loc, uint16_t size) {
+static inline void afl_maybe_log(uint64_t cur_loc, uint16_t size) {
 
-  abi_ulong trace_loc = cur_loc;
+  uint64_t trace_loc = cur_loc;
   if (trace_loc > afl_end_code || trace_loc < afl_start_code){
 		trace_loc = INIT_TRACE_IP;
 	}
 	if(afl_fork_child){
 		trace_bb(trace_loc, size);
 	}
-  static __thread abi_ulong prev_loc;
+  static __thread uint64_t prev_loc;
 
   /* Optimize for cur_loc > afl_end_code, which is the most likely case on
      Linux systems. */
@@ -276,7 +277,7 @@ static inline void afl_maybe_log(abi_ulong cur_loc, uint16_t size) {
    we tell the parent to mirror the operation, so that the next fork() has a
    cached copy. */
 
-static void afl_request_tsl(target_ulong pc, target_ulong cb, uint64_t flags) {
+static void afl_request_tsl(target_ulong pc, target_ulong cb, uint64_t flags, uint32_t mask) {
 
   struct afl_tsl t;
 
@@ -285,6 +286,7 @@ static void afl_request_tsl(target_ulong pc, target_ulong cb, uint64_t flags) {
   t.pc      = pc;
   t.cs_base = cb;
   t.flags   = flags;
+  t.mask    = mask;
 
   if (write(TSL_FD, &t, sizeof(struct afl_tsl)) != sizeof(struct afl_tsl))
     return;
@@ -306,14 +308,14 @@ static void afl_wait_tsl(CPUState *cpu, int fd) {
     if (read(fd, &t, sizeof(struct afl_tsl)) != sizeof(struct afl_tsl))
       break;
 
-    tb = tb_htable_lookup(cpu, t.pc, t.cs_base, t.flags);
+    tb = tb_htable_lookup(cpu, t.pc, t.cs_base, t.flags, t.mask);
 
     if(!tb) {
       mmap_lock();
-      tb_lock();
+      // tb_lock();
       tb_gen_code(cpu, t.pc, t.cs_base, t.flags, 0);
       mmap_unlock();
-      tb_unlock();
+      // tb_unlock();
     }
 
   }

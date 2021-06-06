@@ -85,7 +85,7 @@ class Forkserver:
         self.in_file.write(testcase)
         self.in_file.seek(0)
 
-        os.write(self.ctl_in, "\0\0\0\0")
+        os.write(self.ctl_in, bytes("\0\0\0\0"))
 
         pid = struct.unpack("I",os.read(self.st_out, 4))[0]
 
